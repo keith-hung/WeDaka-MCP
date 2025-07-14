@@ -11,7 +11,7 @@ import mcp.server.stdio
 import mcp.types as types
 
 from .api_client import WedakaApiClient
-from .models import LoginResponse, TimeLogResponse, SearchTimelogResponse
+from .models import TimeLogResponse, SearchTimelogResponse
 
 
 # Global API client instance
@@ -34,15 +34,6 @@ async def handle_list_tools() -> list[types.Tool]:
     """List available tools"""
     return [
         types.Tool(
-            name="wedaka_login",
-            description="Employee login (uses environment variables for credentials)",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        ),
-        types.Tool(
             name="wedaka_clock_in",
             description="Clock in (上班打卡)",
             inputSchema={
@@ -51,6 +42,14 @@ async def handle_list_tools() -> list[types.Tool]:
                     "note": {
                         "type": "string",
                         "description": "Additional notes (optional)"
+                    },
+                    "clock_date": {
+                        "type": "string",
+                        "description": "Date in YYYY-MM-DD format (optional, defaults to today)"
+                    },
+                    "clock_time": {
+                        "type": "string",
+                        "description": "Time in HH:MM:SS format (optional, defaults to current time)"
                     }
                 },
                 "required": []
@@ -65,6 +64,14 @@ async def handle_list_tools() -> list[types.Tool]:
                     "note": {
                         "type": "string", 
                         "description": "Additional notes (optional)"
+                    },
+                    "clock_date": {
+                        "type": "string",
+                        "description": "Date in YYYY-MM-DD format (optional, defaults to today)"
+                    },
+                    "clock_time": {
+                        "type": "string",
+                        "description": "Time in HH:MM:SS format (optional, defaults to current time)"
                     }
                 },
                 "required": []
@@ -102,44 +109,24 @@ async def handle_call_tool(
     """Handle tool calls"""
     
     try:
-        if name == "wedaka_login":
-            client = await get_api_client()
-            response = await client.login()
-            
-            if response.success:
-                result = {
-                    "success": True,
-                    "message": response.message,
-                    "empId": response.empId,
-                    "empName": response.empName,
-                    "token": response.token,
-                    "phoneUuid": response.phoneUuid
-                }
-            else:
-                result = {
-                    "success": False,
-                    "message": response.message
-                }
-            
-            return [types.TextContent(
-                type="text",
-                text=f"Login result: {json.dumps(result, ensure_ascii=False, indent=2)}"
-            )]
-        
-        elif name == "wedaka_clock_in":
+        if name == "wedaka_clock_in":
             note = arguments.get("note")
+            clock_date = arguments.get("clock_date")
+            clock_time = arguments.get("clock_time")
             
             client = await get_api_client()
             response = await client.insert_time_log(
                 log_type="上班",
-                note=note
+                note=note,
+                clock_date=clock_date,
+                clock_time=clock_time
             )
             
             result = {
                 "success": response.success,
                 "message": response.message,
-                "logId": response.logId,
-                "logTime": response.logTime
+                "logId": response.LogId,
+                "logTime": response.LogTime
             }
             
             return [types.TextContent(
@@ -149,18 +136,22 @@ async def handle_call_tool(
         
         elif name == "wedaka_clock_out":
             note = arguments.get("note")
+            clock_date = arguments.get("clock_date")
+            clock_time = arguments.get("clock_time")
             
             client = await get_api_client()
             response = await client.insert_time_log(
                 log_type="下班",
-                note=note
+                note=note,
+                clock_date=clock_date,
+                clock_time=clock_time
             )
             
             result = {
                 "success": response.success,
                 "message": response.message,
-                "logId": response.logId,
-                "logTime": response.logTime
+                "logId": response.LogId,
+                "logTime": response.LogTime
             }
             
             return [types.TextContent(

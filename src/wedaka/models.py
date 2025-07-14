@@ -1,24 +1,10 @@
 """Data models for WeDaka MCP Server"""
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 
 
-class LoginRequest(BaseModel):
-    """Login request model"""
-    username: str = Field(..., description="Employee AD account")
-    deviceId: str = Field(..., description="Device ID for authentication")
-
-
-class LoginResponse(BaseModel):
-    """Login response model"""
-    success: bool
-    message: str
-    empId: Optional[str] = None
-    empName: Optional[str] = None
-    token: Optional[str] = None
-    phoneUuid: Optional[str] = None
 
 
 class TimeLogRequest(BaseModel):
@@ -34,29 +20,94 @@ class TimeLogRequest(BaseModel):
 
 class TimeLogResponse(BaseModel):
     """Time log response model"""
-    success: bool
-    message: str
-    logId: Optional[str] = None
-    logTime: Optional[str] = None
+    model_config = {"populate_by_name": True}
+    
+    Status: bool
+    ErrorMessage: Optional[str] = ""
+    HolidayList: Optional[Any] = None
+    LogId: Optional[str] = None  # May not be present in all responses
+    LogTime: Optional[str] = None  # May not be present in all responses
+    
+    @property
+    def success(self) -> bool:
+        return self.Status
+    
+    @property 
+    def message(self) -> str:
+        return self.ErrorMessage or ""
 
 
 class TimeLogRecord(BaseModel):
-    """Time log record model"""
-    logId: str
-    empId: str
-    logType: str
-    logTime: str
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    address: Optional[str] = None
-    note: Optional[str] = None
+    """Time log record model - matches SearchTimelog API response structure"""
+    model_config = {"populate_by_name": True}
+    
+    # Based on Go WorkTimeData structure and actual API response
+    DateType: Optional[str] = None
+    LeaveHours: Optional[int] = None
+    Memo: Optional[str] = None
+    WorkItem: Optional[str] = None
+    WorkTime: Optional[str] = None
+    WorkType: Optional[str] = None
+    WorkDate: Optional[str] = None  # Additional field found in SearchTimelog response
+    
+    # Compatibility properties for original interface
+    @property
+    def logId(self) -> Optional[str]:
+        # WorkItem might serve as identifier, or we can use a combination
+        return self.WorkItem
+    
+    @property
+    def empId(self) -> Optional[str]:
+        # Employee ID is not directly in the record, might be in parent response
+        return None
+    
+    @property
+    def logType(self) -> Optional[str]:
+        return self.WorkType
+    
+    @property
+    def logTime(self) -> Optional[str]:
+        return self.WorkTime
+    
+    @property
+    def latitude(self) -> Optional[float]:
+        # GPS coordinates not available in this response structure
+        return None
+    
+    @property
+    def longitude(self) -> Optional[float]:
+        # GPS coordinates not available in this response structure
+        return None
+    
+    @property
+    def address(self) -> Optional[str]:
+        # Address not available in this response structure
+        return None
+    
+    @property
+    def note(self) -> Optional[str]:
+        return self.Memo
 
 
 class SearchTimelogResponse(BaseModel):
     """Search timelog response model"""
-    success: bool
-    message: str
-    data: Optional[List[TimeLogRecord]] = None
+    model_config = {"populate_by_name": True}
+    
+    Status: bool
+    ErrorMessage: Optional[str] = ""
+    TimeLog: Optional[List[TimeLogRecord]] = None
+    
+    @property
+    def success(self) -> bool:
+        return self.Status
+    
+    @property 
+    def message(self) -> str:
+        return self.ErrorMessage or ""
+    
+    @property
+    def data(self) -> Optional[List[TimeLogRecord]]:
+        return self.TimeLog
 
 
 class ApiError(BaseModel):
