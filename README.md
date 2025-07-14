@@ -1,6 +1,6 @@
-# WeDaka MCP Server
+# WeDaka MCP Server - TypeScript Implementation
 
-WeDaka MCP Server 是一個員工打卡系統的 Model Context Protocol (MCP) 伺服器，讓員工能夠透過 MCP 客戶端進行打卡和查詢工時記錄。
+WeDaka MCP Server 的 TypeScript 實作版本，提供員工打卡系統的 Model Context Protocol (MCP) 伺服器功能。
 
 ## 功能特色
 
@@ -14,42 +14,66 @@ WeDaka MCP Server 是一個員工打卡系統的 Model Context Protocol (MCP) �
 
 ## 安裝方式
 
-### 使用 uvx (推薦)
-
-無需預先安裝，MCP 客戶端會自動處理：
+### 方式一：從 GitHub 直接安裝（推薦）
 
 ```bash
-# 從本地專案路徑安裝
-uvx --from /path/to/WeDaka-MCP wedaka-server
-
-# 從 GitHub 遠端倉庫安裝
-uvx --from git+https://github.com/keith-hung/WeDaka-MCP.git wedaka-server
-
-# 從特定 branch 或 tag 安裝
-uvx --from git+https://github.com/keith-hung/WeDaka-MCP.git@main wedaka-server
-
-# 安裝包含開發依賴的版本
-uvx --from "git+https://github.com/keith-hung/WeDaka-MCP.git[dev]" wedaka-server
+# 複製專案並安裝依賴
+git clone git@github.com:keith-hung/WeDaka-MCP.git
+cd WeDaka-MCP
+npm install
+npm run build
 ```
 
-### 傳統 pip 安裝
+### 方式二：本地開發安裝
+
+如果您已經有專案檔案：
 
 ```bash
-pip install -r requirements.txt
-pip install -e .
+# 安裝依賴
+npm install
+
+# 編譯 TypeScript
+npm run build
 ```
 
-**需求：** Python 3.10+
+### 前置需求
+
+- Node.js 20.0.0+
+- Git（用於從 GitHub 安裝）
+- npm 或 yarn
 
 ## 環境變數設定
 
 使用前需要設定以下環境變數：
-- `WEDAKA_API_URL`：WeDaka API 伺服器位址
-- `WEDAKA_USERNAME`：員工 AD 帳號（用於工時查詢）
-- `WEDAKA_DEVICE_ID`：裝置 UUID（用於認證）
-- `WEDAKA_EMP_NO`：員工編號（用於打卡）
 
-**注意**: 本系統採用直接認證方式，無需密碼或登入流程。
+```bash
+export WEDAKA_API_URL="https://your-wedaka-server.com"
+export WEDAKA_USERNAME="your-ad-account"
+export WEDAKA_DEVICE_ID="your-device-uuid"
+export WEDAKA_EMP_NO="your-employee-number"
+```
+
+## 開發腳本
+
+```bash
+# 編譯 TypeScript
+npx tsc
+
+# 開發模式運行
+npx tsx src/server.ts
+
+# 運行編譯後的程式
+node dist/server.js
+
+# 執行測試
+npx jest
+
+# 程式碼檢查
+npx eslint src/**/*.ts
+
+# 程式碼格式化
+npx prettier --write src/**/*.ts
+```
 
 ## MCP 客戶端設定
 
@@ -61,8 +85,8 @@ pip install -e .
 {
   "mcpServers": {
     "wedaka": {
-      "command": "uvx",
-      "args": ["--from", "git+https://github.com/keith-hung/WeDaka-MCP.git", "wedaka-server"],
+      "command": "npx",
+      "args": ["-y", "git+https://github.com/keith-hung/WeDaka-MCP.git"],
       "env": {
         "WEDAKA_API_URL": "https://your-wedaka-server.com",
         "WEDAKA_USERNAME": "your-ad-account",
@@ -82,8 +106,8 @@ pip install -e .
 {
   "mcp.servers": {
     "wedaka": {
-      "command": "uvx",
-      "args": ["--from", "git+https://github.com/keith-hung/WeDaka-MCP.git", "wedaka-server"],
+      "command": "npx",
+      "args": ["-y", "git+https://github.com/keith-hung/WeDaka-MCP.git"],
       "env": {
         "WEDAKA_API_URL": "https://your-wedaka-server.com",
         "WEDAKA_USERNAME": "your-ad-account",
@@ -95,149 +119,86 @@ pip install -e .
 }
 ```
 
-### 使用說明
+**注意事項：**
+1. 將上述設定中的環境變數替換為實際值
+2. 重新啟動 Claude Desktop 或 VSCode 以載入設定
+3. 首次執行時 npx 會自動從 GitHub 下載並安裝專案
+4. 確保使用 Node.js 20.0.0 或更高版本
 
-1. 將上述設定中的 `your-ad-account`、`your-device-uuid`、`your-employee-number` 等替換為實際值
-2. 重新啟動 Claude Desktop 或 VSCode
-3. 現在可以直接使用 MCP tools，無需每次輸入認證資訊
 
 ## 可用的 MCP Tools
 
 本系統提供以下 MCP tools：
 
 - **wedaka_clock_in** - 上班打卡
-  - 支援即時打卡（使用當前日期時間）
-  - 支援指定日期打卡（格式：YYYY-MM-DD）
-  - 支援指定時間打卡（格式：HH:MM:SS）
-  - 支援添加備註說明
-  
 - **wedaka_clock_out** - 下班打卡  
-  - 支援即時打卡（使用當前日期時間）
-  - 支援指定日期打卡（格式：YYYY-MM-DD）
-  - 支援指定時間打卡（格式：HH:MM:SS）
-  - 支援添加備註說明
-  
 - **wedaka_get_timelog** - 查詢工時記錄
-  - 查詢指定月份和年份的所有打卡記錄
-  - 顯示詳細的打卡時間、類型和備註
-
 - **wedaka_check_work_day** - 檢查工作日
-  - 檢查指定日期是否為工作日
-  - 返回日期類型和工作日狀態
-  - 可用於確認是否可以打卡
-
-### 使用範例
-
-```
-# 當天上班打卡
-使用 wedaka_clock_in 工具進行上班打卡
-
-# 當天下班打卡並添加備註
-使用 wedaka_clock_out 工具進行下班打卡，備註：加班完成專案
-
-# 指定日期和時間的補打卡
-使用 wedaka_clock_in 工具，日期：2025-07-10，時間：09:30:00，備註：補打卡
-
-# 查詢本月工時記錄
-使用 wedaka_get_timelog 工具查詢 2025 年 7 月的工時記錄
-
-# 檢查指定日期是否為工作日
-使用 wedaka_check_work_day 工具檢查 2025-07-15 是否為工作日
-```
-
-### 工作日檢查機制
-
-系統會自動檢查每次打卡的日期是否為工作日：
-- **DateType "1"**: 工作日（可以打卡）
-- **DateType "2"**: 假日類型1（週末或國定假日）
-- **DateType "3"**: 假日類型2
-- **DateType "4"**: 假日類型3
-
-如果嘗試在非工作日打卡，系統會自動拒絕並提供相應的錯誤訊息。
-
-### 未來日期保護機制
-
-系統會檢查打卡日期，禁止為未來日期打卡：
-- **今天**: 允許打卡（需通過工作日檢查）
-- **過去日期**: 允許補打卡（需通過工作日檢查）
-- **未來日期**: 一律拒絕打卡，提示錯誤訊息
-
-這確保了打卡記錄的時間邏輯正確性，防止意外的未來日期打卡。
 
 ## 專案結構
 
 ```
-WeDaka-MCP/
-├── src/wedaka/
-│   ├── __init__.py          # 專案初始化
-│   ├── server.py            # MCP Server 主程式
-│   ├── api_client.py        # WeDaka API 客戶端
-│   └── models.py            # 資料模型定義
-├── tests/                   # 測試目錄
-│   ├── __init__.py
-│   ├── conftest.py          # pytest 設定
-│   └── test_api_integration.py  # API 整合測試
-├── .env.test.example        # 測試環境變數範例
-├── run_tests.py             # 測試執行腳本
-├── pyproject.toml           # 專案設定和依賴
-├── requirements.txt         # 相依套件清單
-└── README.md               # 專案說明文件
+typescript/
+├── src/
+│   ├── types/           # TypeScript 類型定義
+│   ├── models/          # Zod 驗證模型
+│   ├── client/          # API 客戶端
+│   ├── server/          # MCP 伺服器實作
+│   ├── __tests__/       # 測試檔案
+│   └── server.ts        # 主要入口點
+├── dist/                # 編譯輸出目錄
+├── jest.config.js       # Jest 測試設定
+├── tsconfig.json        # TypeScript 設定
+├── .eslintrc.js         # ESLint 設定
+├── .prettierrc          # Prettier 設定
+└── package.json         # 專案設定
 ```
 
-## 開發和測試
+## 技術棧
 
-### 安裝開發環境
+- **TypeScript**: 型別安全的 JavaScript
+- **Zod**: 執行時型別驗證
+- **Axios**: HTTP 客戶端
+- **@modelcontextprotocol/sdk**: MCP SDK
+- **Jest**: 測試框架
+- **ESLint**: 程式碼檢查
+- **Prettier**: 程式碼格式化
 
-建議使用 `uv` 來管理虛擬環境：
+## 開發指南
+
+### 程式碼風格
+
+- 使用 TypeScript 嚴格模式
+- 遵循 ESLint 和 Prettier 規則
+- 使用 Zod 進行資料驗證
+- 採用 async/await 處理異步操作
+
+### 測試
 
 ```bash
-# 建立虛擬環境
-uv venv
+# 執行所有測試
+npx jest
 
-# 啟動虛擬環境
-source .venv/bin/activate
+# 執行特定測試檔案
+npx jest src/__tests__/WedakaApiClient.test.ts
 
-# 安裝開發依賴
-uv pip install -e ".[dev]"
+# 執行測試並生成覆蓋率報告
+npx jest --coverage
 ```
 
-這會安裝額外的開發工具包括：
-- pytest (測試框架)
-- pytest-asyncio (異步測試支援)
-- black (程式碼格式化)
-- isort (匯入排序)
-- mypy (型別檢查)
+### 程式碼品質
 
-### 執行測試
+```bash
+# 檢查程式碼風格
+npx eslint src/**/*.ts
 
-1. **設定測試環境變數**：
-   ```bash
-   cp .env.test.example .env.test
-   # 編輯 .env.test 填入實際的認證資訊
-   ```
+# 自動修復可修復的問題
+npx eslint src/**/*.ts --fix
 
-2. **執行 API 整合測試**：
-   ```bash
-   # 使用測試腳本
-   python run_tests.py
-   
-   # 或使用 pytest
-   pytest tests/ -v
-   ```
-
-3. **程式碼品質檢查**：
-   ```bash
-   # 格式化程式碼
-   black src/ tests/
-   
-   # 排序 imports
-   isort src/ tests/
-   
-   # 型別檢查
-   mypy src/
-   ```
+# 格式化程式碼
+npx prettier --write src/**/*.ts
+```
 
 ## 授權
 
 MIT License
-
