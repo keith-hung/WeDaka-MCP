@@ -231,7 +231,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           dateType: response.DateType,
           isWorkDay: isWorkDay,
           message: `日期 ${date} 的類型為 ${response.DateType}${
-            isWorkDay ? ' (工作日)' : ' (非工作日)'
+            response.DateType === '1' ? ' (工作日)' : 
+            response.DateType === '2' ? ' (休假日)' :
+            response.DateType === '3' ? ' (例假日)' : ' (未知類型)'
           }`,
         };
       } else {
