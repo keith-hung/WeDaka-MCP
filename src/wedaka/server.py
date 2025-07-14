@@ -11,7 +11,7 @@ import mcp.server.stdio
 import mcp.types as types
 
 from .api_client import WedakaApiClient
-from .models import TimeLogResponse, SearchTimelogResponse
+from .models import TimeLogResponse, SearchTimelogResponse, DateTypeResponse
 
 
 # Global API client instance
@@ -98,6 +98,20 @@ async def handle_list_tools() -> list[types.Tool]:
                 },
                 "required": ["month", "year"]
             }
+        ),
+        types.Tool(
+            name="wedaka_check_work_day",
+            description="Check if a specific date is a work day",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "description": "Date in YYYY-MM-DD format"
+                    }
+                },
+                "required": ["date"]
+            }
         )
     ]
 
@@ -182,6 +196,33 @@ async def handle_call_tool(
             return [types.TextContent(
                 type="text",
                 text=f"Time log query result: {json.dumps(result, ensure_ascii=False, indent=2)}"
+            )]
+        
+        elif name == "wedaka_check_work_day":
+            date = arguments["date"]
+            
+            client = await get_api_client()
+            response = await client.get_date_type(date)
+            
+            if response.success:
+                result = {
+                    "success": True,
+                    "date": date,
+                    "dateType": response.DateType,
+                    "isWorkDay": response.is_work_day,
+                    "message": f"日期 {date} 的類型為 {response.DateType}" + 
+                              (" (工作日)" if response.is_work_day else " (非工作日)")
+                }
+            else:
+                result = {
+                    "success": False,
+                    "date": date,
+                    "message": response.message
+                }
+            
+            return [types.TextContent(
+                type="text",
+                text=f"Work day check result: {json.dumps(result, ensure_ascii=False, indent=2)}"
             )]
         
         else:

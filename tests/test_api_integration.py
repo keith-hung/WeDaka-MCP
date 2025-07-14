@@ -3,9 +3,9 @@
 import os
 import pytest
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from wedaka.api_client import WedakaApiClient
-from wedaka.models import TimeLogResponse, SearchTimelogResponse
+from wedaka.models import TimeLogResponse, SearchTimelogResponse, DateTypeResponse
 
 
 class TestWedakaApiIntegration:
@@ -121,6 +121,12 @@ class TestWedakaApiIntegration:
                 datetime.now().year
             )
             assert isinstance(search_response, SearchTimelogResponse)
+            
+            # Test date type response
+            date_type_response = await api_client.get_date_type(
+                datetime.now().strftime("%Y-%m-%d")
+            )
+            assert isinstance(date_type_response, DateTypeResponse)
     
     @pytest.mark.asyncio
     async def test_error_handling(self, check_env_vars):
@@ -138,6 +144,102 @@ class TestWedakaApiIntegration:
             # Restore original URL
             if original_url:
                 os.environ["WEDAKA_API_URL"] = original_url
+    
+    @pytest.mark.asyncio
+    async def test_work_day_check(self, api_client, check_env_vars):
+        """Test work day checking functionality"""
+        async with api_client:
+            # Test today
+            today = datetime.now().strftime("%Y-%m-%d")
+            response = await api_client.get_date_type(today)
+            
+            assert isinstance(response, DateTypeResponse)
+            
+            if response.success:
+                assert response.DateType in ["1", "2", "3", "4"]
+                print(f"Today ({today}) is DateType {response.DateType}")
+                print(f"Is work day: {response.is_work_day}")
+            else:
+                print(f"Work day check failed: {response.message}")
+            
+            # Test invalid date format
+            invalid_response = await api_client.get_date_type("2024/01/01")
+            assert not invalid_response.success
+            assert "Invalid date format" in invalid_response.message
+    
+    @pytest.mark.asyncio
+    async def test_work_day_protection(self, api_client, check_env_vars):
+        """Test that clock in/out is protected by work day check"""
+        async with api_client:
+            # Try to find a non-work day (last Saturday)
+            days_since_monday = datetime.now().weekday()
+            last_saturday = datetime.now() - timedelta(days=days_since_monday + 2)
+            saturday_date = last_saturday.strftime("%Y-%m-%d")
+            
+            # Check if Saturday is a work day
+            date_check = await api_client.get_date_type(saturday_date)
+            
+            if date_check.success and not date_check.is_work_day:
+                # Try to clock in on Saturday (should be rejected)
+                clock_in_response = await api_client.insert_time_log(
+                    log_type="上班",
+                    note="Test Saturday clock in",
+                    clock_date=saturday_date,
+                    clock_time="09:00:00"
+                )
+                
+                assert not clock_in_response.success
+                assert "不是工作日" in clock_in_response.message
+                print(f"Saturday ({saturday_date}) protection working correctly")
+            else:
+                print(f"Saturday ({saturday_date}) is unexpectedly a work day or check failed")
+    
+    @pytest.mark.asyncio
+    async def test_future_date_protection(self, api_client, check_env_vars):
+        """Test that future dates are rejected for clock in/out"""
+        async with api_client:
+            # Test tomorrow (should be rejected)
+            tomorrow = datetime.now() + timedelta(days=1)
+            tomorrow_date = tomorrow.strftime("%Y-%m-%d")
+            
+            # Try to clock in for tomorrow
+            clock_in_response = await api_client.insert_time_log(
+                log_type="上班",
+                note="Future date test",
+                clock_date=tomorrow_date,
+                clock_time="09:00:00"
+            )
+            
+            assert not clock_in_response.success
+            assert "未來日期" in clock_in_response.message
+            print(f"Future date protection working: {clock_in_response.message}")
+            
+            # Try to clock out for tomorrow
+            clock_out_response = await api_client.insert_time_log(
+                log_type="下班",
+                note="Future date test",
+                clock_date=tomorrow_date,
+                clock_time="18:00:00"
+            )
+            
+            assert not clock_out_response.success
+            assert "未來日期" in clock_out_response.message
+            
+            # Today should pass the future date check (but may fail work day check)
+            today = datetime.now().strftime("%Y-%m-%d")
+            today_response = await api_client.insert_time_log(
+                log_type="上班",
+                note="Today test",
+                clock_date=today,
+                clock_time="09:00:00"
+            )
+            
+            # Should not fail with future date error
+            if not today_response.success:
+                assert "未來日期" not in today_response.message
+                print(f"Today rejected for other reason: {today_response.message}")
+            else:
+                print("Today clock in successful")
 
 
 # Utility function for running tests manually

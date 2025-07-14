@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import httpx
 from .models import (
-    TimeLogRequest, TimeLogResponse,
-    SearchTimelogResponse, ApiError
+    TimeLogResponse, DateTypeResponse,
+    SearchTimelogResponse
 )
 
 
@@ -44,6 +44,76 @@ class WedakaApiClient:
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
+    
+    async def get_date_type(
+        self,
+        date: str,
+        emp_id: Optional[str] = None
+    ) -> DateTypeResponse:
+        """
+        Get date type to check if it's a work day
+        
+        Args:
+            date: Date in YYYY-MM-DD format
+            emp_id: Employee ID (optional, defaults to WEDAKA_EMP_NO env var)
+            
+        Returns:
+            DateTypeResponse object
+        """
+        if not emp_id:
+            emp_id = os.getenv("WEDAKA_EMP_NO")
+        
+        if not emp_id:
+            return DateTypeResponse(
+                DateType="0",
+                Status=False,
+                ErrorMessage="WEDAKA_EMP_NO environment variable is required"
+            )
+        
+        try:
+            # Validate date format
+            try:
+                datetime.strptime(date, "%Y-%m-%d")
+            except ValueError:
+                return DateTypeResponse(
+                    DateType="0",
+                    Status=False,
+                    ErrorMessage=f"Invalid date format: {date}. Expected YYYY-MM-DD"
+                )
+            
+            # API request parameters
+            params = {
+                "empID": emp_id,
+                "date": date
+            }
+            
+            # Add X-UUID header for authentication
+            device_id = os.getenv("WEDAKA_DEVICE_ID")
+            headers = {"X-UUID": device_id} if device_id else {}
+            
+            response = await self.client.get("/worktime/GetDateType/", params=params, headers=headers)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Debug: print raw response for troubleshooting
+            if os.getenv("DEBUG_API"):
+                print(f"DEBUG: GetDateType response: {data}")
+            
+            return DateTypeResponse(**data)
+            
+        except httpx.HTTPError as e:
+            return DateTypeResponse(
+                DateType="0",
+                Status=False,
+                ErrorMessage=f"Network error: {str(e)}"
+            )
+        except Exception as e:
+            return DateTypeResponse(
+                DateType="0",
+                Status=False,
+                ErrorMessage=f"Unexpected error: {str(e)}"
+            )
     
     
     async def insert_time_log(
@@ -83,8 +153,32 @@ class WedakaApiClient:
                         Status=False,
                         ErrorMessage=f"Invalid date format: {clock_date}. Expected YYYY-MM-DD"
                     )
+                target_date = clock_date
             else:
                 parsed_date = datetime.now()
+                target_date = parsed_date.strftime("%Y-%m-%d")
+            
+            # MANDATORY: Check if the date is not in the future
+            today = datetime.now().strftime("%Y-%m-%d")
+            if target_date > today:
+                return TimeLogResponse(
+                    Status=False,
+                    ErrorMessage=f"無法為未來日期（{target_date}）打卡。只能為今天或過去的日期打卡。"
+                )
+            
+            # MANDATORY: Check if the date is a work day
+            date_type_response = await self.get_date_type(target_date, emp_no)
+            if not date_type_response.success:
+                return TimeLogResponse(
+                    Status=False,
+                    ErrorMessage=f"Failed to check work day: {date_type_response.message}"
+                )
+            
+            if not date_type_response.is_work_day:
+                return TimeLogResponse(
+                    Status=False,
+                    ErrorMessage=f"該日期（{target_date}）不是工作日，無法打卡。日期類型：{date_type_response.DateType}"
+                )
             
             if clock_time:
                 # Parse time in HH:MM:SS format
