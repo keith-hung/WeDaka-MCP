@@ -4,6 +4,53 @@
 
 import { z } from 'zod';
 
+/**
+ * WorkItem type definitions
+ * Represents the type of work time log entry
+ */
+export enum WorkItemType {
+  CLOCK_IN = '1',      // Clock in (上班打卡)
+  LEAVE = '2',         // Leave/Time off (請假)
+  CLOCK_OUT = '4',     // Clock out (下班打卡)
+}
+
+/**
+ * Get human-readable description for WorkItem code
+ */
+export function getWorkItemDescription(workItem: string | null | undefined): string {
+  if (!workItem) return 'Unknown';
+
+  switch (workItem) {
+    case WorkItemType.CLOCK_IN:
+      return 'Clock In (上班打卡)';
+    case WorkItemType.LEAVE:
+      return 'Leave/Time Off (請假)';
+    case WorkItemType.CLOCK_OUT:
+      return 'Clock Out (下班打卡)';
+    default:
+      return `Unknown (${workItem})`;
+  }
+}
+
+/**
+ * WorkType type definitions
+ * Alternative encoding for work time log type
+ */
+export enum WorkType {
+  CLOCK_IN = '1',   // Clock in (上班)
+  CLOCK_OUT = '2',  // Clock out (下班)
+}
+
+/**
+ * DateType definitions
+ * Represents the type of day
+ */
+export enum DateType {
+  WORK_DAY = '1',     // Work day (工作日)
+  LEAVE_DAY = '2',    // Leave day (休假日)
+  HOLIDAY = '3',      // Holiday (例假日)
+}
+
 export const DateTypeResponseSchema = z.object({
   DateType: z.string(),
   Status: z.boolean(),

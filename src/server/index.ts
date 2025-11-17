@@ -11,6 +11,7 @@ import {
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
 import { WedakaApiClient } from '../client/WedakaApiClient.js';
+import { getWorkItemDescription, WorkItemType } from '../models/index.js';
 import { config } from 'dotenv';
 
 // Load environment variables
@@ -193,11 +194,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       let result: any;
       if (response.Status) {
+        // Add human-readable interpretation to each record
+        const enhancedRecords = (response.TimeLog || []).map((record) => {
+          const workItemDesc = getWorkItemDescription(record.WorkItem);
+          const isLeave = record.WorkItem === WorkItemType.LEAVE;
+
+          return {
+            ...record,
+            WorkItemDescription: workItemDesc,
+            IsLeave: isLeave,
+            // Highlight leave information
+            ...(isLeave && {
+              LeaveInfo: `Employee on leave for ${record.LeaveHours || 0} hours`,
+            }),
+          };
+        });
+
+        // Count different types of records
+        const clockInCount = enhancedRecords.filter(r => r.WorkItem === WorkItemType.CLOCK_IN).length;
+        const clockOutCount = enhancedRecords.filter(r => r.WorkItem === WorkItemType.CLOCK_OUT).length;
+        const leaveCount = enhancedRecords.filter(r => r.WorkItem === WorkItemType.LEAVE).length;
+
         result = {
           success: true,
           message: response.ErrorMessage || '',
           totalRecords: response.TimeLog?.length || 0,
-          records: response.TimeLog || [],
+          summary: {
+            clockIns: clockInCount,
+            clockOuts: clockOutCount,
+            leaves: leaveCount,
+          },
+          records: enhancedRecords,
         };
       } else {
         result = {

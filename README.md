@@ -131,9 +131,37 @@ npx prettier --write src/**/*.ts
 本系統提供以下 MCP tools：
 
 - **wedaka_clock_in** - 上班打卡
-- **wedaka_clock_out** - 下班打卡  
+- **wedaka_clock_out** - 下班打卡
 - **wedaka_get_timelog** - 查詢工時記錄
 - **wedaka_check_work_day** - 檢查工作日
+
+### Time Log 資料結構
+
+`wedaka_get_timelog` 回傳的每筆記錄包含以下重要欄位：
+
+#### WorkItem (記錄類型)
+| 數值 | 意義 | 說明 |
+|------|------|------|
+| `'1'` | 上班打卡 | 員工開始工作的時間記錄 |
+| `'2'` | 請假 | 員工當天有請假記錄，會包含請假時數 |
+| `'4'` | 下班打卡 | 員工結束工作的時間記錄 |
+
+**重要**：當 `WorkItem = '2'` 時，表示員工請假，此時 `LeaveHours` 欄位會包含請假時數。
+
+#### DateType (日期類型)
+| 數值 | 意義 |
+|------|------|
+| `'1'` | 工作日 |
+| `'2'` | 休假日 |
+| `'3'` | 例假日 |
+
+#### 其他欄位
+- **WorkTime**: 打卡時間 (格式: YYYY/MM/DD HH:MM:SS)
+- **WorkDate**: 打卡日期
+- **Memo**: 備註
+- **LeaveHours**: 請假時數 (當 WorkItem = '2' 時有值)
+
+更多詳細資料結構說明請參考 [DEVELOPMENT.md](DEVELOPMENT.md#api-資料結構說明)。
 
 ## 專案結構
 
