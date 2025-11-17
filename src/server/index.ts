@@ -203,9 +203,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ...record,
             WorkItemDescription: workItemDesc,
             IsLeave: isLeave,
-            // Highlight leave information
+            // Highlight leave information (full day leave)
             ...(isLeave && {
-              LeaveInfo: `Employee on leave for ${record.LeaveHours || 0} hours`,
+              LeaveInfo: 'Employee on leave (full day)',
             }),
           };
         });
