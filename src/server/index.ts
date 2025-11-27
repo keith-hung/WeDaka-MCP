@@ -45,7 +45,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   const tools: Tool[] = [
     {
       name: 'wedaka_clock_in',
-      description: 'Clock in (上班打卡)',
+      description: 'Clock in (上班打卡). Records the start of work for an employee. Supports custom date/time for retroactive entries.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -67,7 +67,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     },
     {
       name: 'wedaka_clock_out',
-      description: 'Clock out (下班打卡)',
+      description: 'Clock out (下班打卡). Records the end of work for an employee. Supports custom date/time for retroactive entries.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -89,7 +89,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     },
     {
       name: 'wedaka_get_timelog',
-      description: 'Get employee time log records for a specific month',
+      description: 'Get employee time log records for a specific month. Returns clock-in/out times, leave records, and work day information.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -111,7 +111,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     },
     {
       name: 'wedaka_check_work_day',
-      description: 'Check if a specific date is a work day',
+      description: 'Check if a specific date is a work day. Returns the date type: 1=work day, 2=holiday, 3=weekend.',
       inputSchema: {
         type: 'object',
         properties: {
